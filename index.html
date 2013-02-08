@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+	<style>
+	html { width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden; -webkit-text-size-adjust: none;}
+	body { background: #000; width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden; }
+	</style>
+</head>
+<body>
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.0/jquery.min.js"></script>
+<script src="iOS.js"></script>
+<script src="processing-1.4.1.js"></script>
+<canvas id='gamecanvas' data-processing-sources="game.pde"></canvas>
+<script>
+	iOS_disableScrolling();
+	iOS_disableZooming();
+</script>
+<script type="text/javascript">
+function loadJSONLevel(filename) {
+	
+	$.getJSON(filename, function(level) {
+		var pjs = Processing.getInstanceById('gamecanvas');
+		var i = 0;
+		var blockType = 0;
+		for(y=0; y<level.height; y++) {
+			for(x=0; x<level.width; x++) {
+				i = y * level.width + x;
+				blockType = level.data[i];
+				//console.log('<x,y> ' + x + ',' + y);
+				
+				pjs.addBrick(50 + (24 * x), 30 + (24 * y), blockType);
+			}
+		}
+	});
+}
+</script>
+</body>
+</html>
