@@ -5,6 +5,7 @@ final int quarter_width = (canvas_width / 4);
 float moveL = 0;
 float moveR = 0;
 int gameState = 0;
+int currentLevel = 0;
 
 /*supported resolutions
 480x320
@@ -41,41 +42,26 @@ void setup(){
 void draw(){
 	// Fill canvas grey
 	background( 100 );
-/*
-	textSize(75);
-	fill( 255, 255, 255 );
-	textAlign(CENTER);
-	text("GAME OVER", (canvas_width/2), canvas_height/2-85);
-*/
+
 	switch (gameState){
-		case 0:
-			gameState = 1;
-			paddle = new Paddle();
-			bm = new BrickManager();
-
-			bm.loadLevel();
-
-			paddle.addTestBall();
-
+		case 0: // title
 			drawStart();
 			break;
-		case 1:
+		case 1: // level load
+			drawSetup();
+			break;
+		case 2: // game
 			drawPlay();
 			break;
-		case 2:
-			drawPlay();
-			drawGameOver();
+		case 3: // win
+			//drawPlay();
+			drawLevelWin();
 			break;
-		case 3:
+		case 4: // lose
+			//drawPlay();
+			drawGameOver();		
 			break;
 	}
-}
-
-void addBrick(x, y, type) {
-	bm.bricks.add(new Brick(x, y, type));
-	
-	if((y+30) > bm.maxY)
-		bm.maxY = (y + 30);
 }
 
 void drawPlay () {
@@ -84,8 +70,37 @@ void drawPlay () {
 }
 
 void drawStart() {
-	paddle.draw();
+	textSize(75);
+	fill( 255, 255, 255 );
+	textAlign(CENTER);
+	text("BrikPik", (canvas_width/2), canvas_height/2-85);
+
+	textSize(25);
+	fill( 255, 255, 255 );
+	text("Press anywhere to start", (canvas_width/2), canvas_height/2+85);	
+}
+
+void drawSetup() {
+	paddle = new Paddle();
+	bm = new BrickManager();
+
+	bm.loadLevel('1gam.json');
+
 	bm.draw();
+	paddle.addTestBall();
+	
+	gameState = 2;
+}
+
+void drawLevelWin() {
+	textSize(75);
+	fill( 255, 255, 255 );
+	textAlign(CENTER);
+	text("LEVEL CLEARED", (canvas_width/2), canvas_height/2-85);
+	
+	textSize(25);
+	fill( 255, 255, 255 );
+	text("Press anywhere to play next level", (canvas_width/2), canvas_height/2+85);	
 }
 
 void drawGameOver() {
@@ -98,7 +113,7 @@ void drawGameOver() {
 
 	textSize(25);
 	fill( 255, 255, 255 );
-	//text("Press SPACE to try again", (canvas_width/2), canvas_height/2+85);
+	text("Press anywhere to try again", (canvas_width/2), canvas_height/2+85);
 }
 
 void keyPressed() {
@@ -108,6 +123,9 @@ void keyPressed() {
 	if(keyCode == RIGHT) {
 		moveR = 1.0;
 	}
+	
+	if(gameState == 0)
+		gameState = 1;
 }
 
 void keyReleased() {
@@ -122,13 +140,26 @@ void keyReleased() {
 void mousePressed() {
 	switch(mouseButton){
 		case 37: // Left Mouse
-
-			if(mouseX < quarter_width) {
-				moveL = 1.0;
-			} else if (mouseX > (quarter_width * 3)) {
-				moveR = 1.0;
+			switch(gameState) {
+				case 0:
+					gameState = 1;
+					break;
+				case 2:
+					if(mouseX < quarter_width) {
+						moveL = 1.0;
+					} else if (mouseX > (quarter_width * 3)) {
+						moveR = 1.0;
+					}
+					break;
+				case 3:
+					gameState = 1;
+					currentLevel++;
+					break;
+				case 4:
+					gameState = 1;
+					break;					
 			}
-
+			
 			break;
 	}
 }
@@ -148,6 +179,7 @@ class Brick
 	float minX, minY, maxX, maxY;
 	int type;
 	int hit;
+	color c;
 
 	Brick(float start_x, float start_y, int start_type) {
 		x = start_x;
@@ -161,36 +193,63 @@ class Brick
 		maxY = y + 12;
 		
 		hit = 0;
+		
+		switch (type) {
+			case 0:
+				c = #FF0000;
+				break;
+			case 1:
+				c = #00FF00;
+				break;
+			case 2:
+				c = #0000FF;
+				break;
+		}		
+	}
+	
+	void setHit() {
+		hit = 8;
 	}
 
 	void draw() {
-		switch (type) {
-			case 0:
-				fill(255, 0, 0);
-				break;
-			case 1:
-				fill(0, 255, 0);
-				break;
-			case 2:
-				fill(0, 0, 255);
-				break;
-		}
-
 		pushMatrix();
 		translate(x, y);
+		fill(c);
+		
+		if(hit > 1) {
+			hit = hit - 1;
+			scale(hit / 8.0);
+			alpha( 255 * (hit / 8.0))
+		}
+		
 		rect( 0, 0, 24, 24 );
+		stroke(255, 255 ,255);
+		line(-11, -11, -11, 11);
+		line(-11, -11, 11, -11);
+		stroke(0);
+		line(11, -11, 11, 11);
+		line(-11, 11, 11, 11);		
 		popMatrix();
 	}
 }
+
+void addBrick(x, y, type) {
+	bm.bricks.add(new Brick(x, y, type));
+	bm.numBricks++;
+	
+	if((y+30) > bm.maxY)
+		bm.maxY = (y + 30);
+}	
 
 class BrickManager
 {
 	ArrayList bricks;
 	int maxY;
+	int numBricks;
 
 	BrickManager() {
 		bricks = new ArrayList();
-
+		numBricks = 0;
 		maxY = 0;
 	}
 
@@ -201,61 +260,28 @@ class BrickManager
 		for (int i = bricks.size()-1; i >= 0; i--) {
 			Brick b = (Brick) bricks.get(i);
 
-			if(!b.hit)
+			if(b.hit != 1)
 				b.draw();
 		}
 	}
-
-	void loadLevel() {
 	
-		loadJSONLevel('1gam.json');
+	void setHit(Brick b) {
+		numBricks--;
+		b.setHit();
+		
+		if(numBricks <= 0) {
+			gameState = 3;
+		}
+	}	
+	
+	void loadLevel(name) {
+	
+		bricks = new ArrayList();
+		numBricks = 0;
+		loadJSONLevel(name);
 /*
 		for(int i = 0; i<=30; i++) {
 			bricks.add(new Brick(20 + (24 * i), 20, 0));
-		}
-
-		for(int i = 0; i<=30; i++) {
-			bricks.add(new Brick(20 + (24 * i), 50, 1));
-		}
-
-		for(int i = 0; i<=30; i++) {
-			bricks.add(new Brick(20 + (24 * i), 80, 2));
-		}
-	
-		for(int i = 0; i<=30; i++) {
-			bricks.add(new Brick(20 + (24 * i), 110, 0));
-		}
-
-		for(int i = 0; i<=30; i++) {
-			bricks.add(new Brick(20 + (24 * i), 140, 1));
-		}
-
-		for(int i = 0; i<=30; i++) {
-			bricks.add(new Brick(20 + (24 * i), 170, 2));
-		}
-		
-		for(int i = 0; i<=30; i++) {
-			bricks.add(new Brick(20 + (24 * i), 200, 0));
-		}
-
-		for(int i = 0; i<=30; i++) {
-			bricks.add(new Brick(20 + (24 * i), 230, 1));
-		}
-
-		for(int i = 0; i<=30; i++) {
-			bricks.add(new Brick(20 + (24 * i), 260, 2));
-		}
-
-		for(int i = 0; i<=30; i++) {
-			bricks.add(new Brick(20 + (24 * i), 290, 0));
-		}
-
-		for(int i = 0; i<=30; i++) {
-			bricks.add(new Brick(20 + (24 * i), 320, 1));
-		}
-
-		for(int i = 0; i<=30; i++) {
-			bricks.add(new Brick(20 + (24 * i), 350, 2));
 		}
 
 		maxY = 350 + 20;
@@ -318,7 +344,7 @@ class Ball
 
 					if(!b.hit) {
 						if((x > b.minX) && (x < b.maxX) && (y > b.minY) && (y < b.maxY)) {
-							b.hit = 1;
+							bm.setHit(b);
 							collided = true;
 							x1 = last_x - x;
 							y1 = last_y - y;
@@ -431,7 +457,7 @@ class Paddle
 	}
 
 	void addTestBall() {
-		int numBalls = 24;
+		int numBalls = 45;
 		
 		for(int i=0;i<numBalls;i++) {
 			balls.add(new Ball(canvas_width/2, canvas_height/2, ((3.1415 * 2 / numBalls) * i) + (3.1415 / 4.0)));
