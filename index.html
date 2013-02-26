@@ -1,42 +1,84 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+	<meta charset="UTF-8">
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 	<meta name="apple-mobile-web-app-capable" content="yes">
 	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+	<link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+	<link rel="apple-touch-startup-image" href="./startup.png" />
+	<title></title>
+	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.0/jquery.min.js"></script>
 	<style>
 	html { width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden; -webkit-text-size-adjust: none;}
 	body { background: #000; width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden; }
 	</style>
 </head>
 <body>
-<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.0/jquery.min.js"></script>
 <script src="iOS.js"></script>
 <script src="processing-1.4.1.js"></script>
-<canvas id='gamecanvas' data-processing-sources="game.pde"></canvas>
+<div id='container'>
+<canvas id='game'  width='1024' height='768' data-processing-sources="game.pde"></canvas>
+</div>
 <script>
 	iOS_disableScrolling();
 	iOS_disableZooming();
 </script>
 <script type="text/javascript">
+function setupProportionalCanvas() {
+	var $container = $("#container"), $canvas = $("#game"),
+	h = window.innerHeight, w = window.innerWidth;
+
+	$container.css('height',h*2);
+	window.scrollTo(0,1);
+
+	h = window.innerHeight + 2
+	$container.css({ height: h, width: w, padding: 0, margin: 0});
+	var canvasH = $canvas.attr('height'), 
+	canvasW = $canvas.attr('width'),
+	maxHeightMult = h / canvasH,
+	maxWidthMult = w / canvasW,
+	multiplier = Math.min(maxHeightMult, maxWidthMult),
+	destH = canvasH * multiplier,
+	destW = canvasW * multiplier;
+
+	$canvas.css({ 
+		position: 'absolute',
+		height: destH, 
+		width: destW,
+		left: w / 2 - destW / 2,
+		top: 0
+	});
+}
 function loadJSONLevel(filename) {
-	
 	$.getJSON(filename, function(level) {
-		var pjs = Processing.getInstanceById('gamecanvas');
+		var pjs = Processing.getInstanceById('game');
 		var i = 0;
 		var blockType = 0;
 		for(y=0; y<level.height; y++) {
 			for(x=0; x<level.width; x++) {
 				i = y * level.width + x;
 				blockType = level.data[i];
-				//console.log('<x,y> ' + x + ',' + y);
 				
-				pjs.addBrick(50 + (24 * x), 30 + (24 * y), blockType);
+				len = 0;
+
+				for(z=x+1; z<level.width; z++) {
+					var j = y * level.width + z;
+					if (level.data[j] != blockType)
+						break;
+					len = len + 1;
+				}
+
+				pjs.addBrick(54 + (48 * x), 54 + (48 * y), len + 1, blockType);
+				
+				x = x + len;
 			}
 		}
 	});
 }
+
+setupProportionalCanvas();
 </script>
 </body>
 </html>
